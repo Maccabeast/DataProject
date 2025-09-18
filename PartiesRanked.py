@@ -20,6 +20,7 @@ def combine_tables(KNS_bills, KNS_BillInitiator, KNS_PersonToPosition):
     Merge KNS_BillInitiator, KNS_Bills, and KNS_PersonToFaction into a single DataFrame.
 
     """
+    KNS_BillInitiator = KNS_BillInitiator[KNS_BillInitiator['IsInitiator'] == True]
     merged = KNS_BillInitiator.merge(
         KNS_bills[['BillID', 'KnessetNum', 'StatusID']],
         on='BillID',
@@ -31,29 +32,28 @@ def combine_tables(KNS_bills, KNS_BillInitiator, KNS_PersonToPosition):
         on=['PersonID', 'KnessetNum'],
         how='left'
     )
-    result = merged[['BillInitiatorID', 'BillID', 'PersonID', 'KnessetNum', 'FactionID', 'StatusID']]
+    merged = merged.reset_index(drop=True)
+    merged = merged[['BillID', 'KnessetNum', 'FactionID', 'StatusID']]
+    result = merged.drop_duplicates()
     return result
+
 
 def bill_counts(merged: pd.DataFrame) -> pd.DataFrame:
     """
     for each Knesset and Faction, count the number of bills initiated by that faction in that Knesset.
     """
-    counts = merged.groupby(['KnessetNum', 'FactionID']).size().reset_index(name='BillCount')
-    return counts
-
-def law_counts(merged: pd.DataFrame) -> pd.DataFrame:
-    """
-    for each Knesset and Faction, count the number of bills initiated by that faction in that Knesset that became law.
-    """
+    bills = merged.groupby(['KnessetNum', 'FactionID']).size().reset_index(name='BillCount')
     laws = merged[merged['StatusID'] == BECAME_LAW_STATUS]
-    counts = laws.groupby(['KnessetNum', 'FactionID']).size().reset_index(name='LawCount')
-    return counts
+    laws = laws.groupby(['KnessetNum', 'FactionID']).size().reset_index(name='LawCount')
+    result = bills.merge(laws, on=['KnessetNum', 'FactionID'], how='left')
+    result['LawCount'] = result['LawCount'].fillna(0).astype(int)
+    result['SuccessRate'] = result['LawCount'] / result['BillCount']
+    return result
 
 if __name__ == "__main__":
+    print("Loading data...")
     tables = load_data()
     combined_data = combine_tables(tables[KNS_Bill], tables[KNS_BillInitiator], tables[KNS_PersonToPosition])
     print(combined_data.head())
     bills_table = bill_counts(combined_data)
-    print(bills_table.head())
-    laws_table = law_counts(combined_data)
-    print(laws_table.head())
+    print(bills_table.sort_values(by='LawCount', ascending=False).head())
