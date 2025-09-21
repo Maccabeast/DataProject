@@ -37,6 +37,13 @@ def combine_tables(KNS_bills, KNS_BillInitiator, KNS_PersonToPosition):
     result = merged.drop_duplicates()
     return result
 
+def faction_size(merged: pd.DataFrame, PersonToPosition: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add a FactionSize column to the merged DataFrame, indicating the size of each faction in each Knesset.
+    """
+    faction_sizes = PersonToPosition.groupby(['FactionID', 'KnessetNum']).size().reset_index(name='FactionSize')
+    merged = merged.merge(faction_sizes, on=['FactionID', 'KnessetNum'], how='left')
+    return merged
 
 def bill_counts(merged: pd.DataFrame) -> pd.DataFrame:
     """
@@ -57,3 +64,8 @@ if __name__ == "__main__":
     print(combined_data.head())
     bills_table = bill_counts(combined_data)
     print(bills_table.sort_values(by='LawCount', ascending=False).head())
+    bills_table = faction_size(bills_table, tables[KNS_PersonToPosition])
+    bills_table["BillsPerMember"] = bills_table["BillCount"] / bills_table["FactionSize"]
+    bills_table["LawsPerMember"] = bills_table["LawCount"] / bills_table["FactionSize"]
+    print(bills_table.head())
+    bills_table.to_csv("PartiesRanked.csv", index=False)
