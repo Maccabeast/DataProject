@@ -3,3 +3,4 @@ openpyxl
 matplotlib
 python-bidi 
 arabic-reshaper
+openpyxl>=3.1.0
