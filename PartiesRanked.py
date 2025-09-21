@@ -70,50 +70,55 @@ def plot_knesset_stats(df):
     Create dual-axis plots of BillsPerMember and SuccessRate per faction,
     ordered by FactionSize, for selected Knesset numbers.
     """
+    fig_width, fig_height = 12, 6  # consistent size for all plots
+
     for k in [20,23,24,25]:
-        subset = df[df["KnessetNum"] == k].sort_values("SuccessRate", ascending=False)
+        subset = df[df["KnessetNum"] == k].copy()
+        # Prepare faction labels
+        subset["FactionLabel"] = [
+            f"{fix_hebrew(name)} ({size})" for name, size in zip(subset["FactionName"], subset["FactionSize"])
+        ]
 
-        fig, ax1 = plt.subplots(figsize=(12,6))
+        # --- Plot 1: Bills per Member ---
+        bills_sorted = subset.sort_values("BillsPerMember", ascending=False)
 
-        # Fix Hebrew text and add faction size in brackets
-        factions = [f"{fix_hebrew(name)} ({size})" for name, size in zip(subset["FactionName"], subset["FactionSize"])]
+        plt.figure(figsize=(fig_width, fig_height))
+        bars = plt.bar(bills_sorted["FactionLabel"], bills_sorted["BillsPerMember"], color="skyblue", label="Bills per Member")
+        plt.xticks(rotation=90)
+        plt.ylabel("Bills per Member")
+        plt.title(f"Knesset {k}: Bills per Member by Faction")
 
-        # First y-axis = BillsPerMember (bar plot)
-        bars = ax1.bar(factions, subset["BillsPerMember"], color="skyblue", label="Bills per Member")
-        ax1.set_xlabel("Faction (ordered by success rate)")
-        ax1.set_ylabel("Bills per Member", color="blue")
-        ax1.tick_params(axis="y", labelcolor="blue")
+        # Annotate bars with numeric values
+        for bar, val in zip(bars, bills_sorted["BillsPerMember"]):
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() * 1.01,
+                     f"{val:.2f}", ha='center', va='bottom', fontsize=9, color='darkblue')
 
-        # Set ticks & labels properly (fixes the warning)
-        ax1.set_xticks(range(len(factions)))
-        ax1.set_xticklabels(factions, rotation=90)
-
-        # Annotate bars with LawsPerMember (2 decimal places)
-        for bar, value in zip(bars, subset["BillsPerMember"]):
-            ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() * 1.01,
-                     f"{value:.2f}", ha='center', va='bottom', fontsize=9, rotation=90, color="darkgreen", fontweight="bold")
-
-        # Second y-axis = SuccessRate (line plot)
-        ax2 = ax1.twinx()
-        ax2.plot(range(len(factions)), subset["SuccessRate"], color="red", marker="o", label="Success Rate")
-        ax2.set_ylabel("Success Rate", color="red")
-        ax2.tick_params(axis="y", labelcolor="red")
-
-        # Expand top margin to avoid cutting labels
-        ax1.margins(y=0.2)
-
-        # Title
-        plt.title(f"Knesset {k}: Bills per Member and Success Rate by Faction")
-
-        # Combine legends from both axes, place in top right
-        handles1, labels1 = ax1.get_legend_handles_labels()
-        handles2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(handles1 + handles2, labels1 + labels2, loc="upper right")
-
+        # Legend shows only the metric
+        plt.legend(loc="upper right")
         plt.tight_layout()
-        plt.savefig(f"PartiesRankedPlots/Knesset_{k}.png", dpi=300, bbox_inches="tight")
+        plt.savefig(f"PartiesRankedPlots/Knesset_{k}_Bills.png", dpi=300, bbox_inches="tight")
         plt.show()
-        
+
+        # --- Plot 2: Success Rate ---
+        success_sorted = subset.sort_values("SuccessRate", ascending=False)
+
+        plt.figure(figsize=(fig_width, fig_height))
+        bars = plt.bar(success_sorted["FactionLabel"], success_sorted["SuccessRate"], color="salmon", label="Success Rate")
+        plt.xticks(rotation=90)
+        plt.ylabel("Success Rate")
+        plt.title(f"Knesset {k}: Success Rate by Faction")
+
+        # Annotate bars with numeric values
+        for bar, val in zip(bars, success_sorted["SuccessRate"]):
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() * 1.01,
+                     f"{val:.2f}", ha='center', va='bottom', fontsize=9, color='darkred')
+
+        # Legend shows only the metric
+        plt.legend(loc="upper right")
+        plt.tight_layout()
+        plt.savefig(f"PartiesRankedPlots/Knesset_{k}_Success.png", dpi=300, bbox_inches="tight")
+        plt.show()
+     
 if __name__ == "__main__":
     print("Loading data...")
     tables = load_data()
