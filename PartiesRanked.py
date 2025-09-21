@@ -111,7 +111,7 @@ def plot_knesset_stats(df):
         ax1.legend(handles1 + handles2, labels1 + labels2, loc="upper right")
 
         plt.tight_layout()
-        plt.savefig(f"PartiesRankedPlots/Knesset_{k}_Stats.png", dpi=300, bbox_inches="tight")
+        plt.savefig(f"PartiesRankedPlots/Knesset_{k}.png", dpi=300, bbox_inches="tight")
         plt.show()
         
 if __name__ == "__main__":
